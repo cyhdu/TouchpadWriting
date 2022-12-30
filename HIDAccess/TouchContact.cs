@@ -5,11 +5,11 @@ public class TouchContact
     public uint? ContactID { get; set; }
     public uint? X { get; set; }
     public uint? Y { get; set; }
-    public bool touching { get; set; } = false;
+    public int touching { get; set; } = 0;
 
     private bool _valid = false;
     
-    public TouchContact(uint cID, uint x, uint y, bool t)
+    public TouchContact(uint cID, uint x, uint y, int t)
     {
         ContactID = cID;
         X = x;
@@ -22,7 +22,7 @@ public class TouchContact
         ContactID = 7;
         X = 0;
         Y = 0;
-        touching = false;
+        touching = 0;
     }
 
     public bool IsValid()

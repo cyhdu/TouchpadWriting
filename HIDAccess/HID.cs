@@ -24,12 +24,30 @@ public static class HID
         IntPtr                  PreparsedData);
     
     [DllImport("HID", CharSet = CharSet.Auto)]
+    public static extern uint HidP_GetButtonCaps(
+        HIDP_REPORT_TYPE        ReportType, 
+        [Out] HIDP_BUTTON_CAPS[] ButtonCaps,
+        ref ushort              ButtonCapsLength, 
+        IntPtr                  PreparsedData);
+    
+    [DllImport("HID", CharSet = CharSet.Auto)]
     public static extern uint HidP_GetUsageValue(
         HIDP_REPORT_TYPE     ReportType, 
         ushort               UsagePage,
         ushort               LinkCollection,
         ushort               Usage,
         out uint             UsageValue,
+        IntPtr               PreparsedData,
+        IntPtr               Report,
+        uint                 ReportLength); 
+    
+    [DllImport("HID", CharSet = CharSet.Auto)]
+    public static extern uint HidP_GetUsages(
+        HIDP_REPORT_TYPE     ReportType, 
+        ushort               UsagePage,
+        ushort               LinkCollection,
+        IntPtr           UsageList,
+        ref uint                 UsageLength,
         IntPtr               PreparsedData,
         IntPtr               Report,
         uint                 ReportLength); 

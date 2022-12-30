@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:HIDFrontend"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="850" Width="800">
     <Grid>
         <StackPanel>
         <TextBlock x:Name="TextBlock1"
@@ -13,6 +13,11 @@
         
         <TextBlock x:Name="TextBlock2"
                    Text = "WHAT"/>
+        
+        <InkCanvas x:Name="IC1"
+                   Width="600"
+                   Height="300"
+                   Background="Beige"/>
             
         </StackPanel>
 
