@@ -7,19 +7,12 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="850" Width="800">
     <Grid>
-        <StackPanel>
-        <TextBlock x:Name="TextBlock1"
-                   Text="NOT SUCCESS"/>
-        
-        <TextBlock x:Name="TextBlock2"
-                   Text = "WHAT"/>
-        
         <InkCanvas x:Name="IC1"
+                   Grid.Row="0"
+                   Grid.Column="0"
                    Width="600"
                    Height="300"
                    Background="Beige"/>
-            
-        </StackPanel>
 
     </Grid>
 </Window>

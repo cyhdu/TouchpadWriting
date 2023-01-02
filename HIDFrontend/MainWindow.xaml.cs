@@ -62,7 +62,6 @@ namespace HIDFrontend
 
             IntPtr rawInputPointer = IntPtr.Zero;
             rawInputPointer = Marshal.AllocHGlobal((int)dwSize);
-            string s = "";
 
             try
             {
@@ -130,28 +129,23 @@ namespace HIDFrontend
 
                 for (int contact = 0; contact < contactCount; contact++)
                 {
-                    TouchContact t = new();
-                    t.ContactID = (uint?)(rawHIDdata[(1 + 5*contact)%rawHIDdata.Length] & 0xfc)>>2;
-                    t.touching = (rawHIDdata[(1 + 5*contact)%rawHIDdata.Length] & 0x02)>>1;
-                    // X = 1 and 2
-                    // Y = 3 and 4
-                    // TLC is 0, so add 1
-                    t.X = (uint?)(rawHIDdata[(2 + 5*contact)%rawHIDdata.Length] + 256*rawHIDdata[(3 + 5*contact)%rawHIDdata.Length]);
-                    t.Y = (uint?)(rawHIDdata[(4 + 5*contact)%rawHIDdata.Length] + 256*rawHIDdata[(5 + 5*contact)%rawHIDdata.Length]);
-                    if (t != touches[(int)t.ContactID])
+                    TouchContact t = new()
                     {
-                        curList[(int)t.ContactID] = t;
-                        updateList.Add((int)t.ContactID);
-                    }
+                        ContactID = (uint?)(rawHIDdata[(1 + 5*contact)%rawHIDdata.Length] & 0xfc)>>2,
+                        touching = (rawHIDdata[(1 + 5*contact)%rawHIDdata.Length] & 0x02)>>1,
+                        // TLC is 0, so add 1
+                        // Y = 3 and 4
+                        // X = 1 and 2
+                        X = (uint?)(rawHIDdata[(2 + 5*contact)%rawHIDdata.Length] + 256*rawHIDdata[(3 + 5*contact)%rawHIDdata.Length]),
+                        Y = (uint?)(rawHIDdata[(4 + 5*contact)%rawHIDdata.Length] + 256*rawHIDdata[(5 + 5*contact)%rawHIDdata.Length])
+                    };
+                    if (t == touches[(int)t.ContactID]) continue;
+                    curList[(int)t.ContactID] = t;
+                    updateList.Add((int)t.ContactID);
                 }
-
-                s += '\n';
-
             }
             finally
             {
-                s += '\n';
-                TextBlock1.Text = s;
                 Marshal.FreeHGlobal(rawHIDDataPointer);
                 Marshal.FreeHGlobal(preparsedDataPointer);
             }
@@ -181,7 +175,6 @@ namespace HIDFrontend
 
             if (!success) return;
             Console.WriteLine("YAYY");
-            TextBlock1.Text = "SUCCESS";
         }
 
 
@@ -236,18 +229,6 @@ namespace HIDFrontend
             }
         }
 
-        private void updateString()
-        {
-            sss = "";
-            foreach (var t in touches)
-            {
-                sss += t;
-                sss += "\n";
-            }
-
-            TextBlock2.Text = sss;
-
-        }
 
     }
 }
