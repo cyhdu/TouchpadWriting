@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -49,7 +50,7 @@ namespace HIDFrontend
             return RegisterRawInputDevices(new[] { device }, 1, (uint)Marshal.SizeOf<RAWINPUTDEVICE>());
         }
 
-        private TouchContact GetInput(IntPtr lParam)
+        private List<int> GetInput(IntPtr lParam, ref List<TouchContact> curList)
         {
             /* GET RAW HID REPORT */
             uint dwSize = 0;
@@ -94,7 +95,7 @@ namespace HIDFrontend
             Marshal.Copy(rawHIDdata, 0, rawHIDDataPointer, rawHIDdata.Length);
             
             IntPtr preparsedDataPointer = IntPtr.Zero;
-            TouchContact t = new();
+            List<int> updateList = new List<int>();
             try
             {
                 uint preparsedDataSize = 0;
@@ -106,9 +107,7 @@ namespace HIDFrontend
                 if (HidP_GetCaps(preparsedDataPointer, out HIDP_CAPS caps) != HIDP_STATUS_SUCCESS) { return null; }
 
                 ushort numValCaps = caps.NumberInputValueCaps;
-                ushort numCaps = caps.NumberInputButtonCaps;
                 var valCaps = new HIDP_VALUE_CAPS[numValCaps];
-                var butCaps = new HIDP_BUTTON_CAPS[numCaps];
 
 
                 if (HidP_GetValueCaps(HIDP_REPORT_TYPE.HidP_Input, valCaps, ref numValCaps, preparsedDataPointer) != HIDP_STATUS_SUCCESS) { return null; }
@@ -134,13 +133,11 @@ namespace HIDFrontend
                 uint contactCount = 0;
                 // s += "\n HERE \n";
                 // s += valCaps.Length + "\n";
-                var touching = (rawHIDdata[1] & 0x02)>>1;
-                s += $"\n{touching} \n";
-                t.touching = touching;
+                int touching;
                 
                 foreach (var v in valCaps.OrderBy(x => x.LinkCollection))
                 {
-                    s += $"{v.LinkCollection} {v.UsagePage:X2} {v.Usage:X2}";
+                    // s += $"\n{v.LinkCollection} {v.UsagePage:X2} {v.Usage:X2}";
                     if (HidP_GetUsageValue(HIDP_REPORT_TYPE.HidP_Input, v.UsagePage, v.LinkCollection, v.UsageMin,
                             out uint value, preparsedDataPointer, rawHIDDataPointer, (uint)rawHIDdata.Length) !=
                         HIDP_STATUS_SUCCESS)
@@ -148,10 +145,13 @@ namespace HIDFrontend
                         // s += "  ERROR\n";
                         continue;
                     }
-
                     if (v.LinkCollection == 0)
                     {
-                        continue;
+                        if (v.UsagePage == 0x0D && v.Usage == 0x54)
+                        {
+                            contactCount = value;
+                            break;
+                        }
                     }
        //              switch (v.LinkCollection)
        //              {
@@ -171,37 +171,64 @@ namespace HIDFrontend
        //                      break;
        //                  
        //                  default:
-                            switch (v.UsagePage, v.Usage)
-                            {
-                                case (0x0D, 0x51):
-                                    // s += $" CONTACT ID {value:D}";
-                                    t.ContactID = value;
-                                    break;
-                                case (0x01, 0x30):
-                                    // s += $" X POSITION {value:D}";
-                                    t.X = value;
-                                    break;
-                                case (0x01, 0x31):
-                                    // s += $" Y POSITION {value:D}";
-                                    t.Y = value;
-                                    break;
-                            }
+                            // switch (v.UsagePage, v.Usage)
+                            // {
+                            //     case (0x0D, 0x51):
+                            //         s += $"\n CONTACT ID {value:D}";
+                            //         touching = (rawHIDdata[(1 + 5*value)%rawHIDdata.Length] & 0x02)>>1;
+                            //         s += $"\n{touching} \n";
+                            //         t.touching = touching;
+                            //         t.ContactID = value;
+                            //         break;
+                            //     case (0x01, 0x30):
+                            //         s += $" X POSITION {value:D}";
+                            //         t.X = value;
+                            //         break;
+                            //     case (0x01, 0x31):
+                            //         s += $" Y POSITION {value:D}";
+                            //         t.Y = value;
+                            //         break;
+                            // }
+
+                            // if (t.IsValid())
+                            // {
+                            //     curList[(int)t.ContactID] = t;
+                            //     t.X = null;
+                            //     t.Y = null;
+                            //     t.ContactID = null;
+                            // }
+                    // }
+                }
+
+                for (int contact = 0; contact < contactCount; contact++)
+                {
+                    TouchContact t = new();
+                    t.ContactID = (uint?)(rawHIDdata[(1 + 5*contact)%rawHIDdata.Length] & 0xfc)>>2;
+                    t.touching = (rawHIDdata[(1 + 5*contact)%rawHIDdata.Length] & 0x02)>>1;
+                    // X = 1 and 2
+                    // Y = 3 and 4
+                    // TLC is 0, so add 1
+                    t.X = (uint?)(rawHIDdata[(2 + 5*contact)%rawHIDdata.Length] + 256*rawHIDdata[(3 + 5*contact)%rawHIDdata.Length]);
+                    t.Y = (uint?)(rawHIDdata[(4 + 5*contact)%rawHIDdata.Length] + 256*rawHIDdata[(5 + 5*contact)%rawHIDdata.Length]);
+                    if (t != touches[(int)t.ContactID])
+                    {
+                        curList[(int)t.ContactID] = t;
+                        updateList.Add((int)t.ContactID);
                     }
-                // }
+                }
+
+                s += '\n';
 
             }
             finally
             {
+                s += '\n';
                 TextBlock1.Text = s;
                 Marshal.FreeHGlobal(rawHIDDataPointer);
                 Marshal.FreeHGlobal(preparsedDataPointer);
             }
 
-            if (t.IsValid())
-            {
-                return t;
-            }
-            return new TouchContact();
+            return updateList;
         }
 
 
@@ -232,8 +259,8 @@ namespace HIDFrontend
         }
 
 
-        private const double sX = (3500 / 600);
-        private const double sY = (2000 / 300);
+        private const double sX = (1350 / 600);
+        private const double sY = (690 / 300);
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
             switch (msg)
@@ -241,27 +268,62 @@ namespace HIDFrontend
                 case WM_INPUT:
                     DrawingAttributes drawingAttributes1 = new DrawingAttributes();
                     drawingAttributes1.Color = Colors.Green;
-                    var t = GetInput(lParam);
-                    var prev = touches[(int)t.ContactID];
-                    StylusPoint spp;
-                    if (prev.touching == 0)
+                    var prevTouches = new List<TouchContact>(touches);
+                    var updates = GetInput(lParam, ref touches);
+                    foreach (var i in updates)
                     {
-                        spp = new StylusPoint((double)t.X/sX, (double)t.Y/sY);
+                        StylusPoint spp;
+                        if (prevTouches[i].touching == 0)
+                        {
+                            spp = new StylusPoint((double)touches[i].X/sX, (double)touches[i].Y/sY);
+                        }
+                        else
+                        {
+                            spp = new StylusPoint((double)prevTouches[i].X/sX, (double)prevTouches[i].Y/sY);
+                        }
+                        // updateString();
+                        StylusPoint sp1 = new StylusPoint((double)touches[i].X/sX, (double)touches[i].Y/sY);
+                        StylusPointCollection points = new StylusPointCollection(
+                            new StylusPoint[] {spp, sp1});
+                        IC1.Strokes.Add(new Stroke(points, drawingAttributes1));
                     }
-                    else
-                    {
-                        spp = new StylusPoint((double)prev.X/sX, (double)prev.Y/sY);
-                    }
-                    touches[(int)t.ContactID] = t;
+                    
+                    // var prev = touches[(int)t.ContactID];
+                    // StylusPoint spp;
+                    // if (prev.touching == 0)
+                    // {
+                    //     spp = new StylusPoint((double)t.X/sX, (double)t.Y/sY);
+                    // }
+                    // else
+                    // {
+                    //     spp = new StylusPoint((double)prev.X/sX, (double)prev.Y/sY);
+                    // }
+                    // touches[(int)t.ContactID] = t;
                     // updateString();
-                    StylusPoint sp1 = new StylusPoint((double)t.X/sX, (double)t.Y/sY);
-                    StylusPointCollection points = new StylusPointCollection(
-                        new StylusPoint[] {spp, sp1});
-                    IC1.Strokes.Add(new Stroke(points, drawingAttributes1));
+                    // StylusPoint sp1 = new StylusPoint((double)t.X/sX, (double)t.Y/sY);
+                    // StylusPointCollection points = new StylusPointCollection(
+                    //     new StylusPoint[] {spp, sp1});
+                    // IC1.Strokes.Add(new Stroke(points, drawingAttributes1));
                     break;
             }
 
             return IntPtr.Zero;
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+            Process(e);
+        }
+
+        private void Process(KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case Key.Y:
+                    IC1.Strokes.Clear();
+                    break;
+            }
         }
 
         private void updateString()

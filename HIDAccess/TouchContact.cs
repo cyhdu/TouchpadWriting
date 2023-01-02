@@ -2,6 +2,25 @@ namespace HIDAccess;
 
 public class TouchContact
 {
+    private sealed class XYTouchingEqualityComparer : IEqualityComparer<TouchContact>
+    {
+        public bool Equals(TouchContact x, TouchContact y)
+        {
+            if (ReferenceEquals(x, y)) return true;
+            if (ReferenceEquals(x, null)) return false;
+            if (ReferenceEquals(y, null)) return false;
+            if (x.GetType() != y.GetType()) return false;
+            return x.X == y.X && x.Y == y.Y && x.touching == y.touching;
+        }
+
+        public int GetHashCode(TouchContact obj)
+        {
+            return HashCode.Combine(obj.X, obj.Y, obj.touching);
+        }
+    }
+
+    public static IEqualityComparer<TouchContact> XYTouchingComparer { get; } = new XYTouchingEqualityComparer();
+
     public uint? ContactID { get; set; }
     public uint? X { get; set; }
     public uint? Y { get; set; }
