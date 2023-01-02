@@ -79,11 +79,6 @@ namespace HIDFrontend
                 rawHIDdata = new byte[rawinput.Hid.dwSizeHid * rawinput.Hid.dwCount];
                 int rawInputOffset = (int)dwSize - rawHIDdata.Length;
                 Buffer.BlockCopy(rawInputData, rawInputOffset, rawHIDdata, 0, rawHIDdata.Length);
-
-                // foreach (var v in rawHIDdata)
-                // {
-                //     s += $"{Convert.ToString(v, 2).PadLeft(8, '0')} ";
-                // }
             }
             finally
             {
@@ -109,40 +104,18 @@ namespace HIDFrontend
                 ushort numValCaps = caps.NumberInputValueCaps;
                 var valCaps = new HIDP_VALUE_CAPS[numValCaps];
 
-
                 if (HidP_GetValueCaps(HIDP_REPORT_TYPE.HidP_Input, valCaps, ref numValCaps, preparsedDataPointer) != HIDP_STATUS_SUCCESS) { return null; }
-                // if (HidP_GetButtonCaps(HIDP_REPORT_TYPE.HidP_Input, butCaps, ref numCaps, preparsedDataPointer) != HIDP_STATUS_SUCCESS) { return null; }
-                //
-                // if (HidP_GetUsages(HIDP_REPORT_TYPE.HidP_Input, butCaps[0].UsagePage, 0, 
-                //         gb, g, preparsedDataPointer,
-                //         rawHIDDataPointer, (uint)rawHIDdata.Length) !=
-                //     HIDP_STATUS_SUCCESS)
-                // {
-                //     return null;
-                // }
-                
-                // foreach (var v in (butCaps))
-                // {
-                //     s += $"{v.UsagePage}";
-                // }
-                
                 
 
-                // s += "\n\t";
                 uint scanTime = 0;
                 uint contactCount = 0;
-                // s += "\n HERE \n";
-                // s += valCaps.Length + "\n";
-                int touching;
                 
                 foreach (var v in valCaps.OrderBy(x => x.LinkCollection))
                 {
-                    // s += $"\n{v.LinkCollection} {v.UsagePage:X2} {v.Usage:X2}";
                     if (HidP_GetUsageValue(HIDP_REPORT_TYPE.HidP_Input, v.UsagePage, v.LinkCollection, v.UsageMin,
                             out uint value, preparsedDataPointer, rawHIDDataPointer, (uint)rawHIDdata.Length) !=
                         HIDP_STATUS_SUCCESS)
                     {
-                        // s += "  ERROR\n";
                         continue;
                     }
                     if (v.LinkCollection == 0)
@@ -153,51 +126,6 @@ namespace HIDFrontend
                             break;
                         }
                     }
-       //              switch (v.LinkCollection)
-       //              {
-       //                  case 0:
-							// switch (v.UsagePage, v.Usage)
-							// {
-							// 	case (0x0D, 0x56): // Scan Time
-							// 		scanTime = value;
-							// 		break;
-       //
-							// 	case (0x0D, 0x54): // Contact Count
-							// 		contactCount = value;
-							// 		break;
-							// }
-       //
-       //                      s += $"     {contactCount}\n";
-       //                      break;
-       //                  
-       //                  default:
-                            // switch (v.UsagePage, v.Usage)
-                            // {
-                            //     case (0x0D, 0x51):
-                            //         s += $"\n CONTACT ID {value:D}";
-                            //         touching = (rawHIDdata[(1 + 5*value)%rawHIDdata.Length] & 0x02)>>1;
-                            //         s += $"\n{touching} \n";
-                            //         t.touching = touching;
-                            //         t.ContactID = value;
-                            //         break;
-                            //     case (0x01, 0x30):
-                            //         s += $" X POSITION {value:D}";
-                            //         t.X = value;
-                            //         break;
-                            //     case (0x01, 0x31):
-                            //         s += $" Y POSITION {value:D}";
-                            //         t.Y = value;
-                            //         break;
-                            // }
-
-                            // if (t.IsValid())
-                            // {
-                            //     curList[(int)t.ContactID] = t;
-                            //     t.X = null;
-                            //     t.Y = null;
-                            //     t.ContactID = null;
-                            // }
-                    // }
                 }
 
                 for (int contact = 0; contact < contactCount; contact++)
@@ -231,11 +159,9 @@ namespace HIDFrontend
             return updateList;
         }
 
-
         public MainWindow()
         {
             InitializeComponent();
-
         }
 
         private HwndSource _targetSource;
@@ -248,7 +174,7 @@ namespace HIDFrontend
 			_targetSource?.AddHook(WndProc);
             
             var success = RegisterInput(_targetSource.Handle);
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < 5; i++)
             {
                 touches.Add(new TouchContact());
             }
@@ -288,22 +214,6 @@ namespace HIDFrontend
                         IC1.Strokes.Add(new Stroke(points, drawingAttributes1));
                     }
                     
-                    // var prev = touches[(int)t.ContactID];
-                    // StylusPoint spp;
-                    // if (prev.touching == 0)
-                    // {
-                    //     spp = new StylusPoint((double)t.X/sX, (double)t.Y/sY);
-                    // }
-                    // else
-                    // {
-                    //     spp = new StylusPoint((double)prev.X/sX, (double)prev.Y/sY);
-                    // }
-                    // touches[(int)t.ContactID] = t;
-                    // updateString();
-                    // StylusPoint sp1 = new StylusPoint((double)t.X/sX, (double)t.Y/sY);
-                    // StylusPointCollection points = new StylusPointCollection(
-                    //     new StylusPoint[] {spp, sp1});
-                    // IC1.Strokes.Add(new Stroke(points, drawingAttributes1));
                     break;
             }
 
