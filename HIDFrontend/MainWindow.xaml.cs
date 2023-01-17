@@ -23,6 +23,7 @@ using HIDAccess.HIDStructs;
 using HIDAccess.Win32Structs;
 using static HIDAccess.RawInputDevices;
 using static HIDAccess.HID;
+using static HIDAccess.Touchpad;
 
 namespace HIDFrontend
 {
@@ -35,20 +36,6 @@ namespace HIDFrontend
         private string sss = "";
         private uint currentID = 12;
         
-        private static bool RegisterInput(IntPtr windowHandle)
-        {
-
-            var device = new RAWINPUTDEVICE
-            {
-                usUsagePage = 0x000D,
-                usUsage = 0x0005,
-                dwFlags = 0,
-                hwndTarget = windowHandle
-
-            };
-
-            return RegisterRawInputDevices(new[] { device }, 1, (uint)Marshal.SizeOf<RAWINPUTDEVICE>());
-        }
 
         private List<int> GetInput(IntPtr lParam, ref List<TouchContact> curList)
         {
@@ -163,6 +150,10 @@ namespace HIDFrontend
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
+            if (!IsMouseCaptured)
+            {
+                CaptureMouse();
+            }
 
             _targetSource = PresentationSource.FromVisual(this) as HwndSource;
 			_targetSource?.AddHook(WndProc);
@@ -225,6 +216,8 @@ namespace HIDFrontend
             {
                 case Key.Y:
                     IC1.Strokes.Clear();
+                    break;
+                case Key.K:
                     break;
             }
         }
